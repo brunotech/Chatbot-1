@@ -15,7 +15,7 @@ def who_is(session, query):
                 return wikipedia.summary(new_query)
             except Exception:
                 pass
-    return "I don't know about "+query
+    return f"I don't know about {query}"
 
 
 first_question = "Hi, how are you?"

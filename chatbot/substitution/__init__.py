@@ -10,16 +10,19 @@ class Substitution:
             with open(file_path, encoding="utf-8") as f:
                 self.substitutions = json.load(f)
         except FileNotFoundError:
-            warn("substitution for language `{}` not Implemented".format(language),
-                 ResourceWarning)
+            warn(
+                f"substitution for language `{language}` not Implemented",
+                ResourceWarning,
+            )
             self.substitutions = {}
         if not isinstance(self.substitutions, dict):
-            raise TypeError("Expected dictionary `{}` in but found {}".format(
-                file_path, type(self.substitutions)))
+            raise TypeError(
+                f"Expected dictionary `{file_path}` in but found {type(self.substitutions)}"
+            )
 
     def __getattr__(self, item):
         try:
             return self.substitutions[item]
         except KeyError:
-            warn("substitutions does not have {}".format(item), Warning)
+            warn(f"substitutions does not have {item}", Warning)
         return {}

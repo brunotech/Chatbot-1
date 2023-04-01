@@ -10,11 +10,13 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 for language in LANGUAGE_SUPPORT:
-    package_data.extend([
-        "local/%s/default.template" % language,
-        "local/%s/words.txt" % language,
-        "local/%s/substitutions.json" % language
-    ])
+    package_data.extend(
+        [
+            f"local/{language}/default.template",
+            f"local/{language}/words.txt",
+            f"local/{language}/substitutions.json",
+        ]
+    )
 setup(
     name='chatbotAI',
     version=version,

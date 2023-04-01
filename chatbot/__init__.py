@@ -62,7 +62,7 @@ _function_call = MultiFunctionCall()
 def register_call(function_name=None):
     def wrap(function):
         if type(function).__name__ != 'function':
-            raise TypeError("function expected found %s" % type(function).__name__)
+            raise TypeError(f"function expected found {type(function).__name__}")
         function_mapper = _function_call.__func__
         if name in function_mapper:
             raise ValueError("function with same name is already registered")
@@ -116,9 +116,7 @@ class Topic:
 
     def __getitem__(self, key):
         topic = self.topic[key]
-        if topic in self.topics():
-            return topic
-        return ''
+        return topic if topic in self.topics() else ''
 
 
 class Chat(object):
@@ -183,12 +181,14 @@ class Chat(object):
         if isinstance(api, dict):
             return api
         if not isinstance(api, str):
-            raise TypeError("Expected file path or dict for api found %s" % type(api).__name__)
+            raise TypeError(
+                f"Expected file path or dict for api found {type(api).__name__}"
+            )
         with open(api) as file:
             try:
                 return json.load(file)
             except json.decoder.JSONDecodeError as e:
-                raise SyntaxError("Invalid value for api: %s" % e)
+                raise SyntaxError(f"Invalid value for api: {e}")
 
     def __init__handler(self):
         """
@@ -232,7 +232,7 @@ class Chat(object):
     @staticmethod
     def __error_message(expected, text, pos, index):
         content = text[max(0, pos[index - 1][0]): pos[index][1] + 5].strip()
-        return "Expected '%s' tag found '%s' in line `%s`" % (expected, pos[index][2], content)
+        return f"Expected '{expected}' tag found '{pos[index][2]}' in line `{content}`"
 
     def __response_tags(self, text, pos, index):
         next_index = index+1
@@ -263,7 +263,7 @@ class Chat(object):
                 within_block["prev"].append(text[pos[index-1][1]:pos[index][0]].strip(" \t\n"))
             else:
                 content = text[max(0, pos[index-1][0]): pos[index][1]+5].strip()
-                raise NameError("Invalid Tag '%s':  Error in `%s` " % (pos[index][2], content))
+                raise NameError(f"Invalid Tag '{pos[index][2]}':  Error in `{content}` ")
             index += 1
         return index + 1, (
             within_block["client"],
@@ -284,7 +284,11 @@ class Chat(object):
                 defaults.append(self.__response_tags(text, pos, index))
                 index += 2
             elif pos[index][2] == "group":
-                child_name = (name+"."+pos[index][3].strip()) if name else pos[index][3].strip()
+                child_name = (
+                    f"{name}.{pos[index][3].strip()}"
+                    if name
+                    else pos[index][3].strip()
+                )
                 index = self.__group_tags(text, pos, groups,
                                           (lambda i: pos[i][2] != "endgroup"), length, index+1, name=child_name)
             else:
@@ -316,7 +320,7 @@ class Chat(object):
             try:
                 regexps.append(re.compile(self.__normalize(pattern), re.IGNORECASE))
             except Exception as e:
-                e.args = (str(e) + " in pattern "+pattern, )
+                e.args = (f"{str(e)} in pattern {pattern}", )
                 raise e
         return regexps
 
@@ -341,7 +345,9 @@ class Chat(object):
                 else:
                     raise ValueError("Response not specified")
                 if not isinstance(learn, dict):
-                    raise TypeError("Invalid Type for learn expected dict got '%s'" % type(learn).__name__)
+                    raise TypeError(
+                        f"Invalid Type for learn expected dict got '{type(learn).__name__}'"
+                    )
                 if not client:
                     raise ValueError("Each block should contain at least 1 client regex")
                 self._pairs[topic]["pairs"].insert(0, (self.__build_pattern(client),
@@ -478,12 +484,14 @@ class Chat(object):
             or (start_char != "{" or end_char != "}")
             and (start_char != "[" or end_char != "]")
         ):
-            raise SyntaxError("invalid syntax '%s'" % response)
+            raise SyntaxError(f"invalid syntax '{response}'")
         if b_n == 2:
-            statement = self._re_tags.findall(response[begin_tag[1]: end_tag[0]])
-            if not statement:
-                raise SyntaxError("invalid statement '%s'" % response[begin_tag[1]:end_tag[0]])
-            action = statement[0]
+            if statement := self._re_tags.findall(
+                response[begin_tag[1] : end_tag[0]]
+            ):
+                action = statement[0]
+            else:
+                raise SyntaxError(f"invalid statement '{response[begin_tag[1]:end_tag[0]]}'")
         elif start_char == "{":
             action = "map"
         else:
@@ -524,9 +532,14 @@ class Chat(object):
         :param text: The string to be mapped
         :rtype: str
         """
-        if not session.attr.get("substitute", True):
-            return text
-        return self._regex.sub(lambda mo: self._reflections[mo.string[mo.start():mo.end()]], text.lower())
+        return (
+            self._regex.sub(
+                lambda mo: self._reflections[mo.string[mo.start() : mo.end()]],
+                text.lower(),
+            )
+            if session.attr.get("substitute", True)
+            else text
+        )
 
     def _check_if(self, session, con):
         pos = [(m.start(0), m.end(0), m.group(0)) for m in RE_OPERATORS.finditer(con)]
@@ -534,7 +547,7 @@ class Chat(object):
             return con.strip()
         res = prev_res = True
         symbol = "&"
-        first = con[0:pos[0][0]].strip()
+        first = con[:pos[0][0]].strip()
         for j, ele in enumerate(pos):
             s, e, o = ele
             try:
@@ -551,7 +564,7 @@ class Chat(object):
                 prev_res, res = self.__logical_operator[symbol](prev_res, res), True
                 symbol = o
             else:
-                raise SyntaxError("Invalid conditional operator '%s'" % symbol)
+                raise SyntaxError(f"Invalid conditional operator '{symbol}'")
             first = second
         return self.__logical_operator[symbol](prev_res, res)
 
@@ -640,7 +653,7 @@ class Chat(object):
         this_index = 0
         for this_index in range(1, len(content)):
             if name[-1] == "\\":
-                name += ":"+content[this_index]
+                name += f":{content[this_index]}"
             else:
                 this_index -= 1
                 break
@@ -650,13 +663,11 @@ class Chat(object):
             value = content[this_index]
             for this_index in range(this_index+1, len(content)):
                 if value[-1] == "\\":
-                    value += ":"+content[this_index]
+                    value += f":{content[this_index]}"
                 else:
                     break
             session.memory[name] = self._substitute(session, value.strip())
-        if think:
-            return ""
-        return session.memory.get(name, "")
+        return "" if think else session.memory.get(name, "")
 
     def __eval_handler(self, session, condition, response):
         start = condition["start"]
@@ -682,9 +693,9 @@ class Chat(object):
                 key = pair[0]
                 data[key] = ":".join(pair[1:])
             elif key is not None:
-                data[key] += ","+pair[0]
+                data[key] += f",{pair[0]}"
             else:
-                raise SyntaxError("invalid syntax '%s'" % response[start:end])
+                raise SyntaxError(f"invalid syntax '{response[start:end]}'")
         result = self.__api_handler(api_name, method_name, data)
         return "" if think else result
 
@@ -692,11 +703,11 @@ class Chat(object):
         try:
             return requests.__dict__[method.lower().strip()](url, **karg)
         except requests.exceptions.MissingSchema:
-            return self.__api_request("http://"+url, method, **karg)
+            return self.__api_request(f"http://{url}", method, **karg)
         except requests.exceptions.ConnectionError:
             raise RuntimeError("Couldn't connect to server (unreachable). Check your network")
         except KeyError:
-            raise RuntimeError("Invalid method name '%s' in api.json" % method)
+            raise RuntimeError(f"Invalid method name '{method}' in api.json")
 
     def __api_handler(self, api_name, method_name, data={}):
         if api_name not in self._api or method_name not in self._api[api_name]:
@@ -706,7 +717,7 @@ class Chat(object):
             try:
                 api_params["cookies"] = self.__api_request(**self._api[api_name]["auth"]).cookies
             except TypeError:
-                raise ValueError("In api.json 'auth' of '%s' is wrongly configured." % api_name)
+                raise ValueError(f"In api.json 'auth' of '{api_name}' is wrongly configured.")
         param = "params" if self._api[api_name][method_name]["method"].upper().strip() == "GET" else "data"
         try:
             api_params[param].update(data)
@@ -767,8 +778,7 @@ class Chat(object):
             start = m.start(1)
             end = m.end(1)
             final_response += prev_response[prev:start-start_padding]
-            value = named_group.get(prev_response[start:end], "").strip()
-            if value:
+            if value := named_group.get(prev_response[start:end], "").strip():
                 final_response += self._quote(session, self._substitute(session, value))
             prev = end
         return final_response + prev_response[prev:]
@@ -815,9 +825,9 @@ class Chat(object):
         resp = self._wildcards(session, resp, match, parent_match)  # process wildcards
         # fix munged punctuation at the end
         if resp[-2:] == '?.':
-            resp = resp[:-2] + '.'
+            resp = f'{resp[:-2]}.'
         if resp[-2:] == '??':
-            resp = resp[:-2] + '?'
+            resp = f'{resp[:-2]}?'
         return resp
 
     def __intend_selection(self, text, previous_text, current_topic):
@@ -831,14 +841,15 @@ class Chat(object):
             if parents is None:
                 return match, None, response, learn
             for parent in parents:
-                parent_match = parent.match(previous_text)
-                if parent_match:  # did the pattern match?
+                if parent_match := parent.match(previous_text):
                     return match, parent_match, response, learn
 
     def __response_on_topic(self, session, text, previous_text, text_correction, current_topic):
-        match = self.__intend_selection(text, previous_text, current_topic) or \
-              self.__intend_selection(text_correction, previous_text, current_topic)
-        if match:
+        if match := self.__intend_selection(
+            text, previous_text, current_topic
+        ) or self.__intend_selection(
+            text_correction, previous_text, current_topic
+        ):
             match, parent_match, response, learn = match
             if learn:
                 self.__process_learn({
@@ -903,7 +914,7 @@ class Chat(object):
                 self.__generate_and_write_template(template, self._pairs, topic_name, sub_topic)
 
     def __generate_and_write_template(self, template, pairs, topic, sub_topics, base_path=None, padding=""):
-        full_path = (base_path+"."+topic) if base_path else topic
+        full_path = f"{base_path}.{topic}" if base_path else topic
         if topic:
             template.write(padding + "{% group "+topic+" %}\n")
             new_padding = padding + "\t"

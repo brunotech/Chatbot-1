@@ -55,8 +55,9 @@ def spell_test(tests, verbose=False):
         if w != right:
             unknown += (right not in spell_checker.WORDS)
             if verbose:
-                print('correction({}) => {} ({}); expected {} ({})'
-                      .format(wrong, w, spell_checker.WORDS[w], right, spell_checker.WORDS[right]))
+                print(
+                    f'correction({wrong}) => {w} ({spell_checker.WORDS[w]}); expected {right} ({spell_checker.WORDS[right]})'
+                )
     dt = time.clock() - start
     print('{:.0%} of {} correct ({:.0%} unknown) at {:.0f} words per second '
           .format(good / n, n, unknown / n, n / dt))
